@@ -4,5 +4,5 @@ export const IMAGES = {
   GOOGLE_ICON: require("../assets/img/google.png"),
   APPLE_ICON: require("../assets/img/apple.png"),
   BACK_ICON: require("../assets/img/back.png"),
-  MENU_ICON: require("../assets/img/menu.png"),
+
 };

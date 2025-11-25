@@ -47,6 +47,7 @@ export default StyleSheet.create({
   titleWrapper: {
     marginLeft: 16,
     marginBottom: 32,
+    marginTop:40,
   },
 
   title: {
@@ -87,6 +88,12 @@ export default StyleSheet.create({
     marginLeft: 16,
     marginRight: 12,
   },
+  callingCode: {
+    fontSize: 16,
+    color: '#000000',
+    marginRight: 10,
+    fontWeight: '500',
+  },
 
   flagIcon: {
     width: 20,
@@ -124,5 +131,14 @@ export default StyleSheet.create({
   continueText: {
     fontSize: 15,
     fontWeight: "bold",
+  },
+  countryPickerButton: {
+    padding: 10,
+    backgroundColor: '#F3F4F6',
+    borderRadius: 8,
+    marginRight: 10,
+    minWidth: 80,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
 });
