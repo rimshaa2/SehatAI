@@ -12,10 +12,12 @@ import {
   StyleSheet,
 } from "react-native";
 import auth from "@react-native-firebase/auth";
-import styles from './styles/RegisterScreenStyles';
+import styles from "./styles/RegisterScreenStyles";
 import { NativeStackScreenProps } from "@react-navigation/native-stack";
 import { AuthStackParamList } from "../../navigation/types";
-import firestore from "@react-native-firebase/firestore"; 
+import firestore from "@react-native-firebase/firestore";
+import { Keyboard } from "react-native";
+import { serverTimestamp } from "@react-native-firebase/firestore";
 
 // Simple regex for email validation
 const isValidEmail = (email: string) => {
@@ -68,6 +70,7 @@ const RegisterScreen: React.FC<Props> = ({ navigation }) => {
   };
 
   const handleRegister = async () => {
+    Keyboard.dismiss();
     if (!validateForm()) return;
 
     setIsLoading(true);
@@ -83,24 +86,22 @@ const RegisterScreen: React.FC<Props> = ({ navigation }) => {
 
       // 3. Save extra data to Firestore
       // We use .set() to create a document with the specific User ID (uid)
-      await firestore().collection('users').doc(user.uid).set({
+      await firestore().collection("users").doc(user.uid).set({
         fullName: name,
         email: email.trim(),
-        createdAt: firestore.FieldValue.serverTimestamp(), // Consistent server time
-        role: 'user', // Example of extra data you can store
-        profileImage: null, 
+        createdAt: serverTimestamp(), // Consistent server time
+        role: "user", 
+        profileImage: null,
       });
 
-      // 4. Update Auth Profile (Optional but good for quick access)
-      await user.updateProfile({
-        displayName: name,
-      });
+      // 4. Update Auth Profile 
+     await auth().currentUser?.updateProfile({ displayName: name });
+
 
       Alert.alert("Success", "Account created successfully!");
-      
-      // Navigate to Home/App
-      // navigation.reset({ index: 0, routes: [{ name: 'Home' }] }); 
 
+      // Navigate to Home/App
+      navigation.navigate("Home");
     } catch (error: any) {
       let errorMessage = "Something went wrong";
       if (error.code === "auth/email-already-in-use") {
@@ -133,7 +134,7 @@ const RegisterScreen: React.FC<Props> = ({ navigation }) => {
               style={styles.iconSmall}
             />
           </TouchableOpacity>
-          <View style={{ width: 24 }} /> 
+          <View style={{ width: 24 }} />
         </View>
 
         <View style={styles.titleSection}>
@@ -151,7 +152,9 @@ const RegisterScreen: React.FC<Props> = ({ navigation }) => {
             onChangeText={setName}
             style={[styles.input, errors.name ? styles.inputError : null]}
           />
-          {errors.name ? <Text style={styles.errorText}>{errors.name}</Text> : null}
+          {errors.name ? (
+            <Text style={styles.errorText}>{errors.name}</Text>
+          ) : null}
         </View>
 
         <View style={styles.inputGroup}>
@@ -164,12 +167,19 @@ const RegisterScreen: React.FC<Props> = ({ navigation }) => {
             autoCapitalize="none"
             style={[styles.input, errors.email ? styles.inputError : null]}
           />
-          {errors.email ? <Text style={styles.errorText}>{errors.email}</Text> : null}
+          {errors.email ? (
+            <Text style={styles.errorText}>{errors.email}</Text>
+          ) : null}
         </View>
 
         <View style={styles.inputGroup}>
           <Text style={styles.label}>Password</Text>
-          <View style={[styles.passwordContainer, errors.password ? styles.inputError : null]}>
+          <View
+            style={[
+              styles.passwordContainer,
+              errors.password ? styles.inputError : null,
+            ]}
+          >
             <TextInput
               placeholder={"Enter your password"}
               value={password}
@@ -190,12 +200,19 @@ const RegisterScreen: React.FC<Props> = ({ navigation }) => {
               />
             </TouchableOpacity>
           </View>
-          {errors.password ? <Text style={styles.errorText}>{errors.password}</Text> : null}
+          {errors.password ? (
+            <Text style={styles.errorText}>{errors.password}</Text>
+          ) : null}
         </View>
 
         <View style={styles.inputGroup}>
           <Text style={styles.label}>Confirm Password</Text>
-          <View style={[styles.passwordContainer, errors.confirmPassword ? styles.inputError : null]}>
+          <View
+            style={[
+              styles.passwordContainer,
+              errors.confirmPassword ? styles.inputError : null,
+            ]}
+          >
             <TextInput
               placeholder={"Confirm your password"}
               value={confirmPassword}

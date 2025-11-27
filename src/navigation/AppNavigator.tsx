@@ -7,6 +7,10 @@ import { AuthStackParamList } from "./types";
 import PhoneNumberScreen from "../screens/auth/PhoneNumberScreen";
 import OtpScreen from "../screens/auth/OtpScreen";
 import RegisterScreen from "../screens/auth/RegisterScreen"
+import HomeScreen from "../screens/home/HomeScreen";
+import LoginScreen from "../screens/auth/LoginScreen";
+import BookAppointmentScreen from "../screens/home/BookAppointmentScreen";
+import DoctorListScreen from "../screens/home/DoctorListScreen";
 
 const Stack = createNativeStackNavigator<AuthStackParamList>();
 
@@ -18,6 +22,10 @@ const AppNavigator = () => {
         <Stack.Screen name="PhoneNumber" component={PhoneNumberScreen} />
         <Stack.Screen name="Otp" component={OtpScreen} />
         <Stack.Screen name="Register" component={RegisterScreen} />
+        <Stack.Screen name="Home" component={HomeScreen} />
+        <Stack.Screen name="Login" component={LoginScreen} />
+        <Stack.Screen name="BookAppointment" component={BookAppointmentScreen} />
+        <Stack.Screen name="DoctorList" component={DoctorListScreen} />
 
       </Stack.Navigator>
     </NavigationContainer>

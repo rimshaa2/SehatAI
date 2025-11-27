@@ -4,8 +4,10 @@ export type AuthStackParamList = {
   Login: undefined;
   PhoneNumber: undefined;
   Otp: { 
-    // We pass the whole confirmation object, not just an ID string
     confirmation: FirebaseAuthTypes.ConfirmationResult; 
   };
   Register: undefined;
+  Home:undefined;
+  BookAppointment:undefined;
+  DoctorList: undefined;
 }
