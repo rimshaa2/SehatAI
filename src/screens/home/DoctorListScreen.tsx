@@ -23,13 +23,17 @@ export default ({ navigation, route }: any) => {
   const [allDoctors, setAllDoctors] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
 
-  // Filters
+  // -- Search State --
+  const [searchQuery, setSearchQuery] = useState("");
+
+  // -- Filter State --
   const [availableToday, setAvailableToday] = useState(false);
   const [genderModalVisible, setGenderModalVisible] = useState(false);
   const [selectedGender, setSelectedGender] = useState<string | null>(null);
   const [priceModalVisible, setPriceModalVisible] = useState(false);
   const [priceSort, setPriceSort] = useState<"asc" | "desc" | null>(null);
 
+  // 1. Fetch Data
   useEffect(() => {
     const fetchDoctors = async () => {
       setLoading(true);
@@ -54,10 +58,31 @@ export default ({ navigation, route }: any) => {
     fetchDoctors();
   }, [categoryTitle]);
 
+  // 2. Filter Logic (Search + Filters + Sort)
   const filteredDoctors = useMemo(() => {
     let result = [...allDoctors];
-    if (availableToday) result = result.filter(doc => doc.isAvailable === true);
-    if (selectedGender) result = result.filter(doc => doc.gender === selectedGender);
+
+    // Filter: Search Query (Name or Specialty)
+    if (searchQuery.trim()) {
+      const lowerQuery = searchQuery.toLowerCase();
+      result = result.filter(
+        (doc) =>
+          doc.name?.toLowerCase().includes(lowerQuery) ||
+          doc.specialty?.toLowerCase().includes(lowerQuery)
+      );
+    }
+
+    // Filter: Availability
+    if (availableToday) {
+      result = result.filter((doc) => doc.isAvailable === true);
+    }
+
+    // Filter: Gender
+    if (selectedGender) {
+      result = result.filter((doc) => doc.gender === selectedGender);
+    }
+
+    // Sort: Price
     if (priceSort) {
       result.sort((a, b) => {
         const pA = a.priceValue || 0;
@@ -65,11 +90,15 @@ export default ({ navigation, route }: any) => {
         return priceSort === "asc" ? pA - pB : pB - pA;
       });
     }
+
     return result;
-  }, [allDoctors, availableToday, selectedGender, priceSort]);
+  }, [allDoctors, searchQuery, availableToday, selectedGender, priceSort]);
 
   const renderDoctorItem = ({ item }: any) => (
-    <TouchableOpacity style={styles.card}>
+    <TouchableOpacity 
+      style={styles.card}
+      onPress={() => navigation.navigate("DoctorDetails", { doctor: item })}
+    >
       <Image 
         source={{ uri: item.image || 'https://via.placeholder.com/150' }} 
         style={styles.doctorImage} 
@@ -97,14 +126,25 @@ export default ({ navigation, route }: any) => {
         <View style={{ width: 24 }} />
       </View>
 
-      {/* Search Bar & Filter Button */}
+      {/* Search Bar */}
       <View style={styles.searchContainer}>
         <View style={styles.searchInputWrapper}>
           <Search color="#A1A8B0" size={20} style={styles.searchIcon} />
-          <TextInput placeholder="Search Doctor" style={styles.searchInput} placeholderTextColor="#A1A8B0" />
+          <TextInput
+            placeholder="Search Doctor"
+            placeholderTextColor="#A1A8B0"
+            style={styles.searchInput}
+            value={searchQuery}
+            onChangeText={setSearchQuery} // Updates state as you type
+          />
+          {/* Clear Search Button */}
+          {searchQuery.length > 0 && (
+            <TouchableOpacity onPress={() => setSearchQuery("")}>
+              <X color="#A1A8B0" size={18} />
+            </TouchableOpacity>
+          )}
         </View>
         
-        {/* FIXED: Removed potential stray spaces here */}
         <TouchableOpacity style={styles.filterBtnSquare}>
            <View style={styles.filterLine1} />
            <View style={styles.filterLine2} />
@@ -161,7 +201,7 @@ export default ({ navigation, route }: any) => {
             <View style={styles.emptyContainer}>
               <Text style={styles.emptyTitle}>No Doctors Found</Text>
               <Text style={styles.emptySubtitle}>
-                No doctors listed for "{categoryTitle}"
+                {searchQuery ? `No results for "${searchQuery}"` : "Try adjusting your filters"}
               </Text>
             </View>
           }

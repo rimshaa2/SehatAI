@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, useCallback } from "react";
 import {
   SafeAreaView,
   View,
@@ -7,14 +7,12 @@ import {
   ScrollView,
   Image,
   TouchableOpacity,
-  StyleSheet,
-  Dimensions,
 } from "react-native";
 import { getAuth } from "@react-native-firebase/auth";
-import { getFirestore, doc, getDoc } from "@react-native-firebase/firestore";
+import { getFirestore, doc, getDoc, collection, query, where, getDocs, orderBy, limit } from "@react-native-firebase/firestore";
+import { useFocusEffect } from "@react-navigation/native"; // To refresh when coming back
 import { 
   Search, 
-  Bell, 
   Calendar, 
   Clock, 
   MessageCircle, 
@@ -23,28 +21,24 @@ import {
   CalendarDays 
 } from "lucide-react-native";
 
-const { width } = Dimensions.get("window");
-import styles from "./styles/HomeScreenStyles"
-import { NativeStackScreenProps } from "@react-navigation/native-stack";
-import { AuthStackParamList} from "../../navigation/types";
+import styles from "./styles/HomeScreenStyles";
 
-type Props = NativeStackScreenProps<AuthStackParamList, "Home">;
-
-const HomeScreen: React.FC<Props> = ({ navigation }) => {
+export default ({ navigation }: any) => {
   const [userName, setUserName] = useState("User");
+  const [nextAppointment, setNextAppointment] = useState<any>(null);
+  const [loadingAppt, setLoadingAppt] = useState(true);
+
   const auth = getAuth();
   const db = getFirestore();
 
-  // Fetch User Name from Firestore
+  // 1. Fetch User Name
   useEffect(() => {
     const fetchUserData = async () => {
       const user = auth.currentUser;
       if (user) {
-        // Try to get name from Auth profile first
         if (user.displayName) {
-          setUserName(user.displayName.split(" ")[0]); // Get first name
+          setUserName(user.displayName.split(" ")[0]);
         } else {
-          // Fallback to Firestore if auth profile is empty
           const userDoc = await getDoc(doc(db, "users", user.uid));
           if (userDoc.exists()) {
             const userData = userDoc.data();
@@ -56,7 +50,46 @@ const HomeScreen: React.FC<Props> = ({ navigation }) => {
     fetchUserData();
   }, []);
 
-  // Reusable Grid Item Component
+  // 2. Fetch Upcoming Appointment (Refresh every time screen focuses)
+  useFocusEffect(
+    useCallback(() => {
+      const fetchAppointment = async () => {
+        const user = auth.currentUser;
+        if (!user) return;
+
+        try {
+          // Query: Get appointments for this user
+          // Note: For complex sorting (where + orderBy), Firestore usually requires an index.
+          // We will fetch simple list and sort in JS to avoid index setup errors for now.
+          const q = query(
+            collection(db, "appointments"),
+            where("userId", "==", user.uid)
+          );
+
+          const snapshot = await getDocs(q);
+          
+          if (!snapshot.empty) {
+            const appointments = snapshot.docs.map((doc: { id: any; data: () => any; }) => ({ id: doc.id, ...doc.data() }));
+            
+            // Sort by createdAt desc (newest first) or date
+            // Assuming we want the most recently booked one for now
+            appointments.sort((a: any, b: any) => b.createdAt - a.createdAt);
+            
+            setNextAppointment(appointments[0]);
+          } else {
+            setNextAppointment(null);
+          }
+        } catch (error) {
+          console.error("Error fetching appointment:", error);
+        } finally {
+          setLoadingAppt(false);
+        }
+      };
+
+      fetchAppointment();
+    }, [])
+  );
+
   const GridItem = ({ title, subtitle, icon, color, onPress }: any) => (
     <TouchableOpacity 
       style={[styles.gridItem, { backgroundColor: color }]} 
@@ -74,7 +107,7 @@ const HomeScreen: React.FC<Props> = ({ navigation }) => {
     <SafeAreaView style={styles.container}>
       <ScrollView 
         showsVerticalScrollIndicator={false}
-        contentContainerStyle={{ paddingBottom: 100 }} // Space for bottom tab
+        contentContainerStyle={{ paddingBottom: 100 }} 
       >
         {/* Header */}
         <View style={styles.header}>
@@ -83,7 +116,6 @@ const HomeScreen: React.FC<Props> = ({ navigation }) => {
             <Text style={styles.subGreeting}>I hope you are doing fine!!</Text>
           </View>
           <TouchableOpacity style={styles.profileButton}>
-             {/* Placeholder for User Icon - You can replace with Image */}
              <User color="#1C2A3A" size={24} />
           </TouchableOpacity>
         </View>
@@ -97,79 +129,87 @@ const HomeScreen: React.FC<Props> = ({ navigation }) => {
             placeholderTextColor="#A1A8B0"
           />
           <TouchableOpacity style={styles.filterButton}>
-             {/* Filter Icon Lines */}
              <View style={styles.filterLine1} />
              <View style={styles.filterLine2} />
              <View style={styles.filterLine3} />
           </TouchableOpacity>
         </View>
 
-        {/* Appointment Card */}
-        <View style={styles.appointmentCard}>
-          <View style={styles.doctorInfo}>
-            <Image 
-              source={{ uri: 'https://randomuser.me/api/portraits/women/44.jpg' }} // Placeholder Doctor Image
-              style={styles.doctorImage} 
-            />
-            <View style={{ marginLeft: 12, flex: 1 }}>
-              <Text style={styles.doctorName}>Dr. Sundas Hassan</Text>
-              <Text style={styles.doctorSpeciality}>Ear, Nose & Throat specialist</Text>
+        {/* 3. Dynamic Appointment Card */}
+        {nextAppointment ? (
+          <View style={styles.appointmentCard}>
+            <View style={styles.doctorInfo}>
+              <Image 
+                source={{ uri: nextAppointment.doctorImage || 'https://via.placeholder.com/150' }} 
+                style={styles.doctorImage} 
+              />
+              <View style={{ marginLeft: 12, flex: 1 }}>
+                <Text style={styles.doctorName}>{nextAppointment.doctorName}</Text>
+                <Text style={styles.doctorSpeciality}>{nextAppointment.doctorSpecialty}</Text>
+              </View>
+              <TouchableOpacity style={styles.chatButton}>
+                <MessageCircle color="#FFFFFF" size={20} fill="white" />
+              </TouchableOpacity>
             </View>
-            <TouchableOpacity style={styles.chatButton}>
-              <MessageCircle color="#FFFFFF" size={20} fill="white" />
-            </TouchableOpacity>
+            
+            <View style={styles.dateContainer}>
+              <View style={styles.dateItem}>
+                <Calendar color="#FFFFFF" size={16} />
+                {/* Displaying simple date/time from DB */}
+                <Text style={styles.dateText}>
+                  {nextAppointment.date ? `Date: ${nextAppointment.date}` : "Upcoming"}
+                </Text>
+              </View>
+              <View style={styles.dateItem}>
+                <Clock color="#FFFFFF" size={16} />
+                <Text style={styles.dateText}>{nextAppointment.time}</Text>
+              </View>
+            </View>
           </View>
-          
-          <View style={styles.dateContainer}>
-            <View style={styles.dateItem}>
-              <Calendar color="#FFFFFF" size={16} />
-              <Text style={styles.dateText}>Wed, 10 Jan, 2024</Text>
-            </View>
-            <View style={styles.dateItem}>
-              <Clock color="#FFFFFF" size={16} />
-              <Text style={styles.dateText}>Morning set: 11:00</Text>
-            </View>
-          </View>
-        </View>
+        ) : (
+          // Optional: You can put a "No upcoming appointments" placeholder here if you want
+          // For now, we render nothing as requested.
+          null
+        )}
 
         {/* Grid Menu */}
         <View style={styles.gridContainer}>
           <GridItem 
             title="Book an Appointment" 
             subtitle="Find a Doctor or specialist"
-            icon={{ uri: 'https://cdn-icons-png.flaticon.com/512/2693/2693507.png' }} // Replace with local assets
-            color="#E8F1FF" // Light Blue
+            icon={{ uri: 'https://cdn-icons-png.flaticon.com/512/2693/2693507.png' }} 
+            color="#E8F1FF" 
             onPress={() => navigation.navigate("BookAppointment")}
           />
           <GridItem 
             title="Medical Records" 
             subtitle="view medical reports and history"
             icon={{ uri: 'https://cdn-icons-png.flaticon.com/512/3004/3004458.png' }}
-            color="#EBFDF2" // Light Green
+            color="#EBFDF2" 
           />
           <GridItem 
             title="Check Symptoms" 
             subtitle="Get trusted medical advice instantly with virtual assistant."
             icon={{ uri: 'https://cdn-icons-png.flaticon.com/512/2966/2966327.png' }}
-            color="#F2E7FE" // Light Purple
+            color="#F2E7FE" 
           />
           <GridItem 
             title="Report an emergency" 
             subtitle="Take help in emergency situation"
             icon={{ uri: 'https://cdn-icons-png.flaticon.com/512/564/564619.png' }}
-            color="#FFEEEE" // Light Red
+            color="#FFEEEE" 
           />
           <GridItem 
             title="Log Medicines" 
             subtitle="get reminded to take medicines"
             icon={{ uri: 'https://cdn-icons-png.flaticon.com/512/883/883360.png' }}
-            color="#FFF5EB" // Light Orange
+            color="#FFF5EB" 
           />
           <GridItem 
             title="Mental Wellness" 
             subtitle="seek Mental health support"
             icon={{ uri: 'https://cdn-icons-png.flaticon.com/512/2913/2913520.png' }}
-            color="#FEFCE4" // Light Yellow
+            color="#FEFCE4" 
           />
         </View>
 
@@ -181,7 +221,6 @@ const HomeScreen: React.FC<Props> = ({ navigation }) => {
               <Text style={styles.promoLink}>Find out now →</Text>
             </TouchableOpacity>
           </View>
-          {/* Placeholder for the DNA/AI illustration */}
           <View style={styles.promoImagePlaceholder}>
              <Text style={{color:'white', fontWeight:'bold'}}>AI</Text>
           </View>
@@ -193,10 +232,11 @@ const HomeScreen: React.FC<Props> = ({ navigation }) => {
       <View style={styles.bottomNav}>
         <TouchableOpacity><Home color="#1C2A3A" size={24} /></TouchableOpacity>
         <TouchableOpacity><MessageCircle color="#FFFFFF" size={24} /></TouchableOpacity>
-        <TouchableOpacity><User color="#FFFFFF" size={24} /></TouchableOpacity>
+        <TouchableOpacity onPress={() => navigation.navigate('Profile')}>
+          <User color="#FFFFFF" size={24} />
+        </TouchableOpacity>
         <TouchableOpacity><CalendarDays color="#FFFFFF" size={24} /></TouchableOpacity>
       </View>
     </SafeAreaView>
   );
 };
-export default HomeScreen;

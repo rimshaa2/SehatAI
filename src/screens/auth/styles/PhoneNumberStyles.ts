@@ -74,14 +74,6 @@ export default StyleSheet.create({
     marginBottom: 8,
   },
 
-  phoneInputContainer: {
-    flexDirection: "row",
-    alignItems: "center",
-    borderWidth: 1,
-    borderColor: colors.border,
-    borderRadius: 12,
-  },
-
   countryBox: {
     flexDirection: "row",
     alignItems: "center",
@@ -140,5 +132,48 @@ export default StyleSheet.create({
     minWidth: 80,
     alignItems: 'center',
     justifyContent: 'center',
+  },
+  phoneInputContainer: {
+    flexDirection: "row",
+    alignItems: "center",
+    borderWidth: 1,
+    borderColor: "#E5E7EB",
+    borderRadius: 16,
+    paddingHorizontal: 16,
+    height: 56, // Fixed height for consistency
+    backgroundColor: "#FFFFFF",
+  },
+  countryPickerWrapper: {
+    flexDirection: "row",
+    alignItems: "center",
+  },
+  pickerButton: {
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginRight: 4,
+  },
+  countryCodeText: {
+    fontSize: 16,
+    fontWeight: "600",
+    color: "#1C2A3A",
+    marginRight: 8,
+  },
+  divider: {
+    width: 1,
+    height: 24,
+    backgroundColor: "#E5E7EB",
+    marginRight: 12,
+  },
+  callingCodeText: {
+    fontSize: 16, // Matched Font Size
+    fontWeight: "500",
+    color: "#1C2A3A",
+    marginRight: 8,
+  },
+  phoneInputText: {
+    flex: 1,
+    fontSize: 16, // Matched Font Size
+    color: "#1C2A3A",
+    height: "100%",
   },
 });

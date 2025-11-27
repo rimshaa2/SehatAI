@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useState } from "react";
 import {
   SafeAreaView,
   View,
@@ -9,18 +9,16 @@ import {
   StyleSheet,
   Image,
 } from "react-native";
-import { ChevronLeft, Search, ChevronRight } from "lucide-react-native";
+import { ChevronLeft, Search, ChevronRight, X } from "lucide-react-native";
 import styles from "./styles/BookAppointmentStyles";
-
 // Dummy Data for Medical Categories
 const SPECIALTIES = [
   {
     id: "1",
     title: "Ear, Nose & Throat",
     subtitle: "Wide selection of doctor's specialties",
-    // Use require() for local assets or uri for remote
     icon: { uri: "https://cdn-icons-png.flaticon.com/512/2865/2865917.png" }, // Ear Icon
-    color: "#E8F1FF", // Light Blue bg for icon
+    color: "#E8F1FF", // Light Blue bg
   },
   {
     id: "2",
@@ -46,11 +44,20 @@ const SPECIALTIES = [
 ];
 
 export default ({ navigation }: any) => {
+  const [searchQuery, setSearchQuery] = useState("");
+
+  // Filter Logic: Check if Title OR Subtitle matches the query
+  const filteredSpecialties = SPECIALTIES.filter((item) => 
+    item.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
+    item.subtitle.toLowerCase().includes(searchQuery.toLowerCase())
+  );
+
   return (
     <SafeAreaView style={styles.container}>
       <ScrollView 
         contentContainerStyle={styles.scrollContent}
         showsVerticalScrollIndicator={false}
+        keyboardShouldPersistTaps="handled"
       >
         {/* Header */}
         <View style={styles.header}>
@@ -79,39 +86,57 @@ export default ({ navigation }: any) => {
             placeholder="symptoms, diseases..." 
             placeholderTextColor="#A1A8B0"
             style={styles.searchInput}
+            value={searchQuery}
+            onChangeText={setSearchQuery} // Updates filter instantly
           />
-          <TouchableOpacity style={styles.filterButton}>
-             <View style={styles.filterLine1} />
-             <View style={styles.filterLine2} />
-             <View style={styles.filterLine3} />
-          </TouchableOpacity>
+          {/* Clear Button (Only shows when typing) */}
+          {searchQuery.length > 0 ? (
+            <TouchableOpacity onPress={() => setSearchQuery("")} style={styles.clearButton}>
+              <X color="#A1A8B0" size={18} />
+            </TouchableOpacity>
+          ) : (
+            <TouchableOpacity style={styles.filterButton}>
+              <View style={styles.filterLine1} />
+              <View style={styles.filterLine2} />
+              <View style={styles.filterLine3} />
+            </TouchableOpacity>
+          )}
         </View>
 
         {/* Specialties List */}
         <View style={styles.listContainer}>
-          {SPECIALTIES.map((item) => (
-            <TouchableOpacity 
-              key={item.id} 
-              style={styles.card}
-              onPress={() => navigation.navigate("DoctorList", { specialty: item.title })}
-            >
-              <View style={[styles.iconContainer, { backgroundColor: item.color }]}>
-                <Image source={item.icon} style={styles.icon} resizeMode="contain" />
-              </View>
-              <View style={styles.textContainer}>
-                <Text style={styles.cardTitle}>{item.title}</Text>
-                <Text style={styles.cardSubtitle}>{item.subtitle}</Text>
-              </View>
-              <ChevronRight color="#199A8E" size={20} />
-            </TouchableOpacity>
-          ))}
+          {filteredSpecialties.length > 0 ? (
+            filteredSpecialties.map((item) => (
+              <TouchableOpacity 
+                key={item.id} 
+                style={styles.card}
+                onPress={() => navigation.navigate("DoctorList", { specialty: item.title })}
+              >
+                <View style={[styles.iconContainer, { backgroundColor: item.color }]}>
+                  <Image source={item.icon} style={styles.icon} resizeMode="contain" />
+                </View>
+                <View style={styles.textContainer}>
+                  <Text style={styles.cardTitle}>{item.title}</Text>
+                  <Text style={styles.cardSubtitle}>{item.subtitle}</Text>
+                </View>
+                <ChevronRight color="#199A8E" size={20} />
+              </TouchableOpacity>
+            ))
+          ) : (
+            // Empty State
+            <View style={{ alignItems: 'center', marginTop: 20 }}>
+              <Text style={{ color: '#6B7280' }}>No specialties found for "{searchQuery}"</Text>
+            </View>
+          )}
         </View>
 
-        {/* See More Link */}
-        <TouchableOpacity style={styles.seeMoreContainer}>
-          <Text style={styles.seeMoreText}>See More</Text>
-          <ChevronRight color="#1C69FF" size={16} />
-        </TouchableOpacity>
+        {/* See More Link (Hide if searching to reduce clutter) */}
+        {!searchQuery && (
+          <TouchableOpacity style={styles.seeMoreContainer}>
+            <Text style={styles.seeMoreText}>See More</Text>
+            <ChevronRight color="#1C69FF" size={16} />
+          </TouchableOpacity>
+        )}
 
       </ScrollView>
     </SafeAreaView>

@@ -37,7 +37,7 @@ const styles = StyleSheet.create({
     fontSize: 14,
     color: "#6B7280",
   },
-  // Search Bar (Reused Style)
+  // Search Bar
   searchContainer: {
     flexDirection: "row",
     alignItems: "center",
@@ -61,14 +61,27 @@ const styles = StyleSheet.create({
   filterButton: {
     width: 32,
     height: 32,
-    backgroundColor: "#F2F4F7", // Light Grey
+    backgroundColor: "#F2F4F7",
     borderRadius: 8,
     justifyContent: "center",
     alignItems: "center",
     marginLeft: 8,
   },
-  filterLine1: { width: 16, height: 2, backgroundColor: "#1C69FF", marginBottom: 3 },
-  filterLine2: { width: 10, height: 2, backgroundColor: "#1C69FF", marginBottom: 3 },
+  clearButton: {
+    padding: 4,
+  },
+  filterLine1: {
+    width: 16,
+    height: 2,
+    backgroundColor: "#1C69FF",
+    marginBottom: 3,
+  },
+  filterLine2: {
+    width: 10,
+    height: 2,
+    backgroundColor: "#1C69FF",
+    marginBottom: 3,
+  },
   filterLine3: { width: 16, height: 2, backgroundColor: "#1C69FF" },
 
   // List Items
@@ -83,7 +96,7 @@ const styles = StyleSheet.create({
   iconContainer: {
     width: 56,
     height: 56,
-    borderRadius: 28, // Circle
+    borderRadius: 28,
     justifyContent: "center",
     alignItems: "center",
     marginRight: 16,
@@ -114,7 +127,7 @@ const styles = StyleSheet.create({
     marginTop: 8,
   },
   seeMoreText: {
-    color: "#1C69FF", // Link Blue
+    color: "#1C69FF",
     fontSize: 14,
     fontWeight: "600",
     marginRight: 4,

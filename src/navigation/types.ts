@@ -10,4 +10,8 @@ export type AuthStackParamList = {
   Home:undefined;
   BookAppointment:undefined;
   DoctorList: undefined;
+  DoctorDetails:undefined;
+  Payment:undefined;
+  Profile:undefined;
+  EditProfile:undefined;
 }
