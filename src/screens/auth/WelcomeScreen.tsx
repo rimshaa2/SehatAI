@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useEffect, useState } from "react";
 import {
   SafeAreaView,
   ScrollView,
@@ -7,7 +7,12 @@ import {
   Image,
   ImageBackground,
   TouchableOpacity,
+  Alert,
+  ActivityIndicator,
 } from "react-native";
+import { GoogleSignin } from "@react-native-google-signin/google-signin";
+import auth from "@react-native-firebase/auth";
+import firestore from "@react-native-firebase/firestore";
 
 import styles from "./styles/WelcomeScreenStyle";
 import { IMAGES } from "../../constants/Images";
@@ -18,6 +23,72 @@ import type { AuthStackParamList } from "../../navigation/types";
 type Props = NativeStackScreenProps<AuthStackParamList, "Welcome">;
 
 const WelcomeScreen: React.FC<Props> = ({ navigation }) => {
+  const [loading, setLoading] = useState(false);
+
+  // 1. Configure Google Sign-In (Run once on mount)
+  useEffect(() => {
+    GoogleSignin.configure({
+      webClientId: "839845740526-efh4bq1oaunaboe80q6mk01av3oq5rs2.apps.googleusercontent.com", 
+    });
+  }, []);
+
+  const onGoogleButtonPress = async () => {
+    setLoading(true);
+    try {
+      // 1. Check if device supports Google Play
+      await GoogleSignin.hasPlayServices({ showPlayServicesUpdateDialog: true });
+      
+      // 2. Get the user's ID token
+      const signInResult = await GoogleSignin.signIn();
+      
+      // FIX: Access token directly from 'data' property
+      // The library guarantees 'data' exists on success in v13+
+      const idToken = signInResult.data?.idToken;
+
+      if (!idToken) {
+        throw new Error('No ID token found');
+      }
+
+      // 3. Create a Google credential with the token
+      const googleCredential = auth.GoogleAuthProvider.credential(idToken);
+
+      // 4. Sign-in the user with the credential
+      const userCredential = await auth().signInWithCredential(googleCredential);
+      const user = userCredential.user;
+
+      // 5. SAVE TO FIRESTORE
+      const userDocRef = firestore().collection("users").doc(user.uid);
+      const userDoc = await userDocRef.get();
+
+      if (!userDoc.exists) {
+        await userDocRef.set({
+          fullName: user.displayName || "Google User",
+          email: user.email,
+          profileImage: user.photoURL,
+          createdAt: firestore.FieldValue.serverTimestamp(),
+          role: "user",
+          phone: user.phoneNumber || "",
+        });
+      }
+
+      // 6. Navigate to Home
+      navigation.reset({
+        index: 0,
+        routes: [{ name: "Home" }],
+      });
+
+    } catch (error: any) {
+      if (error.code === 'SIGN_IN_CANCELLED') {
+        console.log("User cancelled login");
+      } else {
+        console.error(error);
+        Alert.alert("Google Sign-In Error", error.message);
+      }
+    } finally {
+      setLoading(false);
+    }
+  };
+
   return (
     <SafeAreaView style={styles.container}>
       <ScrollView style={styles.scroll}>
@@ -29,12 +100,7 @@ const WelcomeScreen: React.FC<Props> = ({ navigation }) => {
           style={styles.headerWrapper}
         >
           <View style={styles.statusBarRow}>
-            <Text style={styles.timeText}>9:41</Text>
-            <Image
-              source={IMAGES.STATUS_ICONS}
-              resizeMode="stretch"
-              style={styles.statusIcons}
-            />
+            {/* You can remove this row if using SafeAreaView correctly on styles */}
           </View>
         </ImageBackground>
 
@@ -57,9 +123,19 @@ const WelcomeScreen: React.FC<Props> = ({ navigation }) => {
             </Text>
           </TouchableOpacity>
 
-          <TouchableOpacity style={styles.googleButton}>
-            <Image source={IMAGES.GOOGLE_ICON} style={styles.socialIcon} />
-            <Text style={styles.googleText}>Sign in with Google</Text>
+          <TouchableOpacity 
+            style={styles.googleButton} 
+            onPress={onGoogleButtonPress}
+            disabled={loading}
+          >
+            {loading ? (
+               <ActivityIndicator size="small" color="#000" />
+            ) : (
+               <>
+                <Image source={IMAGES.GOOGLE_ICON} style={styles.socialIcon} />
+                <Text style={styles.googleText}>Sign in with Google</Text>
+               </>
+            )}
           </TouchableOpacity>
 
           <TouchableOpacity style={styles.appleButton}>

@@ -14,4 +14,9 @@ export type AuthStackParamList = {
   Payment:undefined;
   Profile:undefined;
   EditProfile:undefined;
+  BookingSuccess:undefined;
+  AiAssistant: undefined;
+  AppointmentDetails:undefined;
+  RescheduleAppointment:undefined;
+  MedicalRecords: undefined;
 }

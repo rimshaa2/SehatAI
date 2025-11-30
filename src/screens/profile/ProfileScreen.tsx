@@ -161,11 +161,12 @@ export default ({ navigation }: any) => {
           </View>
         </View>
 
-        <MenuItem onPress={() => navigation.navigate("EditProfile", { userData })}
+        <MenuItem 
           icon={<User size={20} color="#3B82F6" />}
           title="Personal Information"
           subtitle="Update your details"
           color="#EFF6FF"
+          onPress={() => navigation.navigate("EditProfile", { userData })}
         />
         <MenuItem 
           icon={<Bell size={20} color="#8B5CF6" />}

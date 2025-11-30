@@ -7,14 +7,19 @@ import { AuthStackParamList } from "./types";
 import PhoneNumberScreen from "../screens/auth/PhoneNumberScreen";
 import OtpScreen from "../screens/auth/OtpScreen";
 import RegisterScreen from "../screens/auth/RegisterScreen"
-import HomeScreen from "../screens/home/HomeScreen";
+import HomeScreen from "../screens/dashboard/HomeScreen";
 import LoginScreen from "../screens/auth/LoginScreen";
-import BookAppointmentScreen from "../screens/home/BookAppointmentScreen";
-import DoctorListScreen from "../screens/home/DoctorListScreen";
-import DoctorDetailsScreen from "../screens/home/DoctorDetailsScreen";
-import PaymentScreen from "../screens/home/PaymentScreen";
+import BookAppointmentScreen from "../screens/appointment/BookAppointmentScreen";
+import DoctorListScreen from "../screens/appointment/DoctorListScreen";
+import DoctorDetailsScreen from "../screens/appointment/DoctorDetailsScreen";
+import PaymentScreen from "../screens/appointment/PaymentScreen";
 import ProfileScreen from "../screens/profile/ProfileScreen";
 import EditProfileScreen from "../screens/profile/EditProfileScreen";
+import BookingSuccessScreen from "../screens/appointment/BookingSuccessScreen";
+import AiAssistantScreen from "../screens/chatbot/AiAssistantScreen";
+import AppointmentDetailsScreen from "../screens/appointment/AppointmentDetailsScreen";
+import RescheduleAppointmentScreen from "../screens/appointment/RescheduleAppointmentScreen";
+import MedicalRecordsScreen from "../screens/home/MedicalRecordsScreen";
 
 const Stack = createNativeStackNavigator<AuthStackParamList>();
 
@@ -34,6 +39,11 @@ const AppNavigator = () => {
         <Stack.Screen name="Payment" component={PaymentScreen} />
         <Stack.Screen name="Profile" component={ProfileScreen} />
         <Stack.Screen name="EditProfile" component={EditProfileScreen} />
+        <Stack.Screen name="BookingSuccess" component={BookingSuccessScreen} />
+        <Stack.Screen name="AiAssistant" component={AiAssistantScreen} />
+        <Stack.Screen name="AppointmentDetails" component={AppointmentDetailsScreen} />
+        <Stack.Screen name="RescheduleAppointment" component={RescheduleAppointmentScreen} />
+        <Stack.Screen name="MedicalRecords" component={MedicalRecordsScreen} />
 
       </Stack.Navigator>
     </NavigationContainer>

@@ -7,7 +7,7 @@ import {
   TouchableOpacity,
   ScrollView,
   Alert,
-  TextInput, // Added TextInput import
+  TextInput,
   KeyboardAvoidingView,
   Platform,
 } from "react-native";
@@ -18,7 +18,7 @@ import {
   Star,
   MessageSquare,
 } from "lucide-react-native";
-import styles from "./styles/DoctorDetailsStyles";
+import styles from "./styles/DoctorDetailsStyles"; // Ensure path matches your file structure
 
 // Generate next 7 days
 const generateDates = () => {
@@ -31,33 +31,28 @@ const generateDates = () => {
     d.setDate(today.getDate() + i);
     dates.push({
       day: days[d.getDay()],
-      date: d.getDate(),
-      fullDate: d.toISOString().split("T")[0],
+      date: d.getDate(), // Display number (e.g., 28)
+      // 👇 Key Change: We use this full string for logic/database
+      fullDate: d.toISOString().split("T")[0], 
     });
   }
   return dates;
 };
 
 const TIME_SLOTS = [
-  "09:00 AM",
-  "10:00 AM",
-  "11:00 AM",
-  "01:00 PM",
-  "02:00 PM",
-  "03:00 PM",
-  "04:00 PM",
-  "07:00 PM",
-  "08:00 PM",
+  "09:00 AM", "10:00 AM", "11:00 AM",
+  "01:00 PM", "02:00 PM", "03:00 PM",
+  "04:00 PM", "07:00 PM", "08:00 PM",
 ];
 
 export default ({ navigation, route }: any) => {
   const { doctor } = route.params || {};
 
   const dates = generateDates();
-  const [selectedDate, setSelectedDate] = useState(dates[0].date);
+  
+  // 👇 Key Change: Initialize with fullDate (YYYY-MM-DD)
+  const [selectedDate, setSelectedDate] = useState(dates[0].fullDate);
   const [selectedTime, setSelectedTime] = useState<string | null>(null);
-
-  // New State for Reason
   const [reason, setReason] = useState("");
 
   const handleBookAppointment = () => {
@@ -67,17 +62,14 @@ export default ({ navigation, route }: any) => {
     }
 
     if (reason.trim().length === 0) {
-      Alert.alert(
-        "Reason Required",
-        "Please enter a brief reason for your appointment."
-      );
+      Alert.alert("Reason Required", "Please enter a brief reason for your appointment.");
       return;
     }
 
-    // 👇 Navigate to Payment Screen passing all data
+    // Navigate to Payment Screen passing the FULL DATE
     navigation.navigate("Payment", {
       doctor: doctor,
-      date: selectedDate, // or full ISO date string
+      date: selectedDate, // This now contains "2025-11-28"
       time: selectedTime,
       reason: reason,
     });
@@ -156,14 +148,15 @@ export default ({ navigation, route }: any) => {
                 key={index}
                 style={[
                   styles.dateCard,
-                  selectedDate === item.date && styles.dateCardActive,
+                  // 👇 Check against fullDate for active state
+                  selectedDate === item.fullDate && styles.dateCardActive,
                 ]}
-                onPress={() => setSelectedDate(item.date)}
+                onPress={() => setSelectedDate(item.fullDate)} // 👇 Set fullDate
               >
                 <Text
                   style={[
                     styles.dayText,
-                    selectedDate === item.date && styles.textActive,
+                    selectedDate === item.fullDate && styles.textActive,
                   ]}
                 >
                   {item.day}
@@ -171,7 +164,7 @@ export default ({ navigation, route }: any) => {
                 <Text
                   style={[
                     styles.dateNumText,
-                    selectedDate === item.date && styles.textActive,
+                    selectedDate === item.fullDate && styles.textActive,
                   ]}
                 >
                   {item.date}
@@ -213,7 +206,7 @@ export default ({ navigation, route }: any) => {
             ))}
           </View>
 
-          {/* NEW: Reason Input Field */}
+          {/* Reason Input Field */}
           <View style={styles.reasonContainer}>
             <Text style={styles.reasonLabel}>Reason for Appointment</Text>
             <TextInput

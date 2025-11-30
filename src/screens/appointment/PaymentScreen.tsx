@@ -58,17 +58,11 @@ export default ({ navigation, route }: any) => {
       // We use addDoc() to let Firestore generate a unique Booking ID
       await addDoc(collection(db, "appointments"), appointmentData);
 
-      Alert.alert(
-        "Booking Successful!", 
-        "Your appointment has been confirmed. You can view it in your records.",
-        [{ 
-          text: "Go Home", 
-          onPress: () => navigation.reset({
-            index: 0,
-            routes: [{ name: 'Home' }],
-          }) 
-        }]
-      );
+      navigation.replace("BookingSuccess", {
+        doctor: doctor,
+        date: date,
+        time: time,
+      });
 
     } catch (error) {
       console.error("Booking Error:", error);

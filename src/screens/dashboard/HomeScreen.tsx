@@ -9,8 +9,8 @@ import {
   TouchableOpacity,
 } from "react-native";
 import { getAuth } from "@react-native-firebase/auth";
-import { getFirestore, doc, getDoc, collection, query, where, getDocs, orderBy, limit } from "@react-native-firebase/firestore";
-import { useFocusEffect } from "@react-navigation/native"; // To refresh when coming back
+import { getFirestore, doc, getDoc, collection, query, where, getDocs } from "@react-native-firebase/firestore";
+import { useFocusEffect } from "@react-navigation/native"; 
 import { 
   Search, 
   Calendar, 
@@ -21,7 +21,7 @@ import {
   CalendarDays 
 } from "lucide-react-native";
 
-import styles from "./styles/HomeScreenStyles";
+import styles from "./HomeScreenStyles";
 
 export default ({ navigation }: any) => {
   const [userName, setUserName] = useState("User");
@@ -31,7 +31,7 @@ export default ({ navigation }: any) => {
   const auth = getAuth();
   const db = getFirestore();
 
-  // 1. Fetch User Name
+  // 1. Fetch User Name (Runs once on mount)
   useEffect(() => {
     const fetchUserData = async () => {
       const user = auth.currentUser;
@@ -50,7 +50,7 @@ export default ({ navigation }: any) => {
     fetchUserData();
   }, []);
 
-  // 2. Fetch Upcoming Appointment (Refresh every time screen focuses)
+  // 2. Fetch Upcoming Appointment (Runs every time screen is focused)
   useFocusEffect(
     useCallback(() => {
       const fetchAppointment = async () => {
@@ -58,9 +58,7 @@ export default ({ navigation }: any) => {
         if (!user) return;
 
         try {
-          // Query: Get appointments for this user
-          // Note: For complex sorting (where + orderBy), Firestore usually requires an index.
-          // We will fetch simple list and sort in JS to avoid index setup errors for now.
+          // Query: Get appointments for this specific user
           const q = query(
             collection(db, "appointments"),
             where("userId", "==", user.uid)
@@ -71,8 +69,8 @@ export default ({ navigation }: any) => {
           if (!snapshot.empty) {
             const appointments = snapshot.docs.map((doc: { id: any; data: () => any; }) => ({ id: doc.id, ...doc.data() }));
             
-            // Sort by createdAt desc (newest first) or date
-            // Assuming we want the most recently booked one for now
+            // Sort by creation time (newest first) to show the latest booking
+            // Note: In a real app, you might want to sort by 'date' to show the *next* appointment
             appointments.sort((a: any, b: any) => b.createdAt - a.createdAt);
             
             setNextAppointment(appointments[0]);
@@ -90,6 +88,7 @@ export default ({ navigation }: any) => {
     }, [])
   );
 
+  // Helper Component for Grid Items
   const GridItem = ({ title, subtitle, icon, color, onPress }: any) => (
     <TouchableOpacity 
       style={[styles.gridItem, { backgroundColor: color }]} 
@@ -115,7 +114,10 @@ export default ({ navigation }: any) => {
             <Text style={styles.greeting}>Hi {userName}!</Text>
             <Text style={styles.subGreeting}>I hope you are doing fine!!</Text>
           </View>
-          <TouchableOpacity style={styles.profileButton}>
+          <TouchableOpacity 
+            style={styles.profileButton}
+            onPress={() => navigation.navigate("Profile")}
+          >
              <User color="#1C2A3A" size={24} />
           </TouchableOpacity>
         </View>
@@ -135,40 +137,44 @@ export default ({ navigation }: any) => {
           </TouchableOpacity>
         </View>
 
-        {/* 3. Dynamic Appointment Card */}
+        {/* 3. Dynamic Appointment Card (Clickable) */}
         {nextAppointment ? (
-          <View style={styles.appointmentCard}>
-            <View style={styles.doctorInfo}>
-              <Image 
-                source={{ uri: nextAppointment.doctorImage || 'https://via.placeholder.com/150' }} 
-                style={styles.doctorImage} 
-              />
-              <View style={{ marginLeft: 12, flex: 1 }}>
-                <Text style={styles.doctorName}>{nextAppointment.doctorName}</Text>
-                <Text style={styles.doctorSpeciality}>{nextAppointment.doctorSpecialty}</Text>
+          <TouchableOpacity 
+            activeOpacity={0.9}
+            // Navigate to Details screen passing the appointment object
+            onPress={() => navigation.navigate("AppointmentDetails", { appointment: nextAppointment })}
+          >
+            <View style={styles.appointmentCard}>
+              <View style={styles.doctorInfo}>
+                <Image 
+                  source={{ uri: nextAppointment.doctorImage || 'https://via.placeholder.com/150' }} 
+                  style={styles.doctorImage} 
+                />
+                <View style={{ marginLeft: 12, flex: 1 }}>
+                  <Text style={styles.doctorName}>{nextAppointment.doctorName}</Text>
+                  <Text style={styles.doctorSpeciality}>{nextAppointment.doctorSpecialty}</Text>
+                </View>
+                <TouchableOpacity style={styles.chatButton}>
+                  <MessageCircle color="#FFFFFF" size={20} fill="white" />
+                </TouchableOpacity>
               </View>
-              <TouchableOpacity style={styles.chatButton}>
-                <MessageCircle color="#FFFFFF" size={20} fill="white" />
-              </TouchableOpacity>
+              
+              <View style={styles.dateContainer}>
+                <View style={styles.dateItem}>
+                  <Calendar color="#FFFFFF" size={16} />
+                  <Text style={styles.dateText}>
+                    {nextAppointment.date ? `Date: ${nextAppointment.date}` : "Upcoming"}
+                  </Text>
+                </View>
+                <View style={styles.dateItem}>
+                  <Clock color="#FFFFFF" size={16} />
+                  <Text style={styles.dateText}>{nextAppointment.time}</Text>
+                </View>
+              </View>
             </View>
-            
-            <View style={styles.dateContainer}>
-              <View style={styles.dateItem}>
-                <Calendar color="#FFFFFF" size={16} />
-                {/* Displaying simple date/time from DB */}
-                <Text style={styles.dateText}>
-                  {nextAppointment.date ? `Date: ${nextAppointment.date}` : "Upcoming"}
-                </Text>
-              </View>
-              <View style={styles.dateItem}>
-                <Clock color="#FFFFFF" size={16} />
-                <Text style={styles.dateText}>{nextAppointment.time}</Text>
-              </View>
-            </View>
-          </View>
+          </TouchableOpacity>
         ) : (
-          // Optional: You can put a "No upcoming appointments" placeholder here if you want
-          // For now, we render nothing as requested.
+          // Placeholder or Null if no appointment
           null
         )}
 
@@ -185,13 +191,15 @@ export default ({ navigation }: any) => {
             title="Medical Records" 
             subtitle="view medical reports and history"
             icon={{ uri: 'https://cdn-icons-png.flaticon.com/512/3004/3004458.png' }}
-            color="#EBFDF2" 
+            color="#EBFDF2"
+            onPress={() => navigation.navigate("MedicalRecords")}  
           />
           <GridItem 
             title="Check Symptoms" 
             subtitle="Get trusted medical advice instantly with virtual assistant."
             icon={{ uri: 'https://cdn-icons-png.flaticon.com/512/2966/2966327.png' }}
-            color="#F2E7FE" 
+            color="#F2E7FE"
+            onPress={() => navigation.navigate("AiAssistant")} 
           />
           <GridItem 
             title="Report an emergency" 
@@ -230,12 +238,21 @@ export default ({ navigation }: any) => {
 
       {/* Floating Bottom Navigation Bar */}
       <View style={styles.bottomNav}>
-        <TouchableOpacity><Home color="#1C2A3A" size={24} /></TouchableOpacity>
-        <TouchableOpacity><MessageCircle color="#FFFFFF" size={24} /></TouchableOpacity>
-        <TouchableOpacity onPress={() => navigation.navigate('Profile')}>
+        <TouchableOpacity onPress={() => navigation.navigate("Home")}>
+          <Home color="#1C2A3A" size={24} />
+        </TouchableOpacity>
+        
+        <TouchableOpacity onPress={() => navigation.navigate("AiAssistant")}>
+          <MessageCircle color="#FFFFFF" size={24} />
+        </TouchableOpacity>
+        
+        <TouchableOpacity onPress={() => navigation.navigate("Profile")}>
           <User color="#FFFFFF" size={24} />
         </TouchableOpacity>
-        <TouchableOpacity><CalendarDays color="#FFFFFF" size={24} /></TouchableOpacity>
+        
+        <TouchableOpacity>
+          <CalendarDays color="#FFFFFF" size={24} />
+        </TouchableOpacity>
       </View>
     </SafeAreaView>
   );
