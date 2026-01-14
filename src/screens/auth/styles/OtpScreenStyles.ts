@@ -37,6 +37,7 @@ export default StyleSheet.create({
     textAlign: "center",
     letterSpacing: 4,
     marginBottom: 24,
+    color: colors.black,
   },
 
   verifyBtn: {

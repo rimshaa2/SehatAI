@@ -18,39 +18,50 @@ import { getFirestore, collection, query, where, getDocs } from "@react-native-f
 import styles from "./styles/DoctorListStyles";
 
 export default ({ navigation, route }: any) => {
-  const categoryTitle = route.params?.specialty || "Ear, Nose & Throat";
+  // 1. Get the category (Default to "All Doctors" if nothing passed)
+  const categoryTitle = route.params?.specialty || "All Doctors";
 
   const [allDoctors, setAllDoctors] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
 
-  // -- Search State --
+  // -- Search & Filter State --
   const [searchQuery, setSearchQuery] = useState("");
-
-  // -- Filter State --
   const [availableToday, setAvailableToday] = useState(false);
   const [genderModalVisible, setGenderModalVisible] = useState(false);
   const [selectedGender, setSelectedGender] = useState<string | null>(null);
   const [priceModalVisible, setPriceModalVisible] = useState(false);
   const [priceSort, setPriceSort] = useState<"asc" | "desc" | null>(null);
 
-  // 1. Fetch Data
   useEffect(() => {
     const fetchDoctors = async () => {
+      console.log("🔍 Fetching doctors for:", categoryTitle);
       setLoading(true);
       try {
         const db = getFirestore();
         const doctorsRef = collection(db, "doctors");
-        const q = query(doctorsRef, where("category", "==", categoryTitle));
-        const querySnapshot = await getDocs(q);
         
+        let q;
+
+        // 👇 UPDATED LOGIC: Check if we need to filter or get all
+        if (categoryTitle === "All Doctors") {
+          // Fetch EVERYTHING (No 'where' clause)
+          q = query(doctorsRef);
+        } else {
+          // Fetch SPECIFIC category
+          q = query(doctorsRef, where("category", "==", categoryTitle));
+        }
+        
+        const querySnapshot = await getDocs(q);
         const list: any[] = [];
         querySnapshot.forEach((doc: { id: any; data: () => any; }) => {
           list.push({ id: doc.id, ...doc.data() });
         });
 
+        console.log(`✅ Found ${list.length} doctors`);
         setAllDoctors(list);
       } catch (error) {
         console.error("Error:", error);
+        Alert.alert("Error", "Could not fetch doctors.");
       } finally {
         setLoading(false);
       }
@@ -58,7 +69,7 @@ export default ({ navigation, route }: any) => {
     fetchDoctors();
   }, [categoryTitle]);
 
-  // 2. Filter Logic (Search + Filters + Sort)
+  // 2. Client-Side Filtering (Search, Gender, Price, Availability)
   const filteredDoctors = useMemo(() => {
     let result = [...allDoctors];
 
@@ -135,16 +146,14 @@ export default ({ navigation, route }: any) => {
             placeholderTextColor="#A1A8B0"
             style={styles.searchInput}
             value={searchQuery}
-            onChangeText={setSearchQuery} // Updates state as you type
+            onChangeText={setSearchQuery}
           />
-          {/* Clear Search Button */}
           {searchQuery.length > 0 && (
             <TouchableOpacity onPress={() => setSearchQuery("")}>
               <X color="#A1A8B0" size={18} />
             </TouchableOpacity>
           )}
         </View>
-        
         <TouchableOpacity style={styles.filterBtnSquare}>
            <View style={styles.filterLine1} />
            <View style={styles.filterLine2} />

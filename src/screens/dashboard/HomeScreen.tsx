@@ -18,7 +18,7 @@ import {
   MessageCircle, 
   Home, 
   User, 
-  CalendarDays 
+  CalendarDays // This is the icon we need to activate
 } from "lucide-react-native";
 
 import styles from "./HomeScreenStyles";
@@ -31,7 +31,7 @@ export default ({ navigation }: any) => {
   const auth = getAuth();
   const db = getFirestore();
 
-  // 1. Fetch User Name (Runs once on mount)
+  // 1. Fetch User Name
   useEffect(() => {
     const fetchUserData = async () => {
       const user = auth.currentUser;
@@ -50,7 +50,7 @@ export default ({ navigation }: any) => {
     fetchUserData();
   }, []);
 
-  // 2. Fetch Upcoming Appointment (Runs every time screen is focused)
+  // 2. Fetch Upcoming Appointment
   useFocusEffect(
     useCallback(() => {
       const fetchAppointment = async () => {
@@ -58,7 +58,6 @@ export default ({ navigation }: any) => {
         if (!user) return;
 
         try {
-          // Query: Get appointments for this specific user
           const q = query(
             collection(db, "appointments"),
             where("userId", "==", user.uid)
@@ -68,11 +67,8 @@ export default ({ navigation }: any) => {
           
           if (!snapshot.empty) {
             const appointments = snapshot.docs.map((doc: { id: any; data: () => any; }) => ({ id: doc.id, ...doc.data() }));
-            
-            // Sort by creation time (newest first) to show the latest booking
-            // Note: In a real app, you might want to sort by 'date' to show the *next* appointment
+            // Sort by newest first
             appointments.sort((a: any, b: any) => b.createdAt - a.createdAt);
-            
             setNextAppointment(appointments[0]);
           } else {
             setNextAppointment(null);
@@ -88,7 +84,6 @@ export default ({ navigation }: any) => {
     }, [])
   );
 
-  // Helper Component for Grid Items
   const GridItem = ({ title, subtitle, icon, color, onPress }: any) => (
     <TouchableOpacity 
       style={[styles.gridItem, { backgroundColor: color }]} 
@@ -137,11 +132,10 @@ export default ({ navigation }: any) => {
           </TouchableOpacity>
         </View>
 
-        {/* 3. Dynamic Appointment Card (Clickable) */}
-        {nextAppointment ? (
+        {/* Dynamic Appointment Card */}
+        {nextAppointment && (
           <TouchableOpacity 
             activeOpacity={0.9}
-            // Navigate to Details screen passing the appointment object
             onPress={() => navigation.navigate("AppointmentDetails", { appointment: nextAppointment })}
           >
             <View style={styles.appointmentCard}>
@@ -173,9 +167,6 @@ export default ({ navigation }: any) => {
               </View>
             </View>
           </TouchableOpacity>
-        ) : (
-          // Placeholder or Null if no appointment
-          null
         )}
 
         {/* Grid Menu */}
@@ -191,8 +182,8 @@ export default ({ navigation }: any) => {
             title="Medical Records" 
             subtitle="view medical reports and history"
             icon={{ uri: 'https://cdn-icons-png.flaticon.com/512/3004/3004458.png' }}
-            color="#EBFDF2"
-            onPress={() => navigation.navigate("MedicalRecords")}  
+            color="#EBFDF2" 
+            onPress={() => navigation.navigate("MedicalRecords")}
           />
           <GridItem 
             title="Check Symptoms" 
@@ -250,7 +241,10 @@ export default ({ navigation }: any) => {
           <User color="#FFFFFF" size={24} />
         </TouchableOpacity>
         
-        <TouchableOpacity>
+        {/* 👇 UPDATED: Navigate to DoctorList (All Doctors) */}
+        <TouchableOpacity 
+          onPress={() => navigation.navigate("DoctorList", { specialty: "All Doctors" })}
+        >
           <CalendarDays color="#FFFFFF" size={24} />
         </TouchableOpacity>
       </View>

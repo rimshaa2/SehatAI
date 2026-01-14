@@ -1,0 +1,62 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Sehat AI - SOS Test</title>
+    <script src="https://cdn.socket.io/4.5.4/socket.io.min.js"></script>
+    <style>
+        body { font-family: sans-serif; padding: 20px; }
+        .box { padding: 20px; border: 1px solid #ccc; margin: 10px; border-radius: 8px; }
+        #doctor-view { background-color: #e3f2fd; }
+        #patient-view { background-color: #ffebee; }
+        button { padding: 10px 20px; background: red; color: white; border: none; cursor: pointer; font-size: 16px;}
+    </style>
+</head>
+<body>
+    <h2>🚑 Sehat AI - Real-Time Emergency Test</h2>
+
+    <div class="box" id="patient-view">
+        <h3>Patient Screen</h3>
+        <p>Click to trigger SOS:</p>
+        <button onclick="sendSOS()">🔴 PRESS SOS BUTTON</button>
+        <p id="status">Status: Safe</p>
+    </div>
+
+    <div class="box" id="doctor-view">
+        <h3>Doctor/Admin Dashboard</h3>
+        <p>Waiting for alerts...</p>
+        <ul id="alerts"></ul>
+    </div>
+
+    <script>
+        const socket = io('http://localhost:5000');
+
+        // 1. Simulate Doctor Logging In
+        socket.emit('JOIN_RESPONDERS');
+
+        // 2. Function to Send SOS
+        function sendSOS() {
+            document.getElementById('status').innerText = "Status: 🚨 SENDING ALERT...";
+            socket.emit('EMERGENCY_TRIGGER', {
+                patientId: "USER_123",
+                location: "33.6844° N, 73.0479° E (Islamabad)",
+                type: "Heart Attack"
+            });
+        }
+
+        // 3. Listen for Confirmation (Patient side)
+        socket.on('EMERGENCY_ACKNOWLEDGED', (data) => {
+            document.getElementById('status').innerText = "Status: ✅ " + data.status;
+        });
+
+        // 4. Listen for Alerts (Doctor side)
+        socket.on('NEW_EMERGENCY', (data) => {
+            const list = document.getElementById('alerts');
+            const item = document.createElement('li');
+            item.style.color = 'red';
+            item.innerHTML = `<b>🚨 ALERT!</b> Patient ${data.patientId} - ${data.type} at ${data.location}`;
+            list.appendChild(item);
+            alert("New Emergency Received!");
+        });
+    </script>
+</body>
+</html>
