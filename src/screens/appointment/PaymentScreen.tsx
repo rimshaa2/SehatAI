@@ -10,8 +10,11 @@ import {
   ActivityIndicator,
 } from "react-native";
 import { ChevronLeft, Star, MapPin, Calendar, PenTool } from "lucide-react-native";
-import { getAuth } from "@react-native-firebase/auth";
-import { getFirestore, collection, addDoc, serverTimestamp } from "@react-native-firebase/firestore";
+
+// Firebase imports
+import { collection, addDoc, serverTimestamp } from "firebase/firestore";
+import { auth, db } from "../../config/firebase";
+
 import styles from "./styles/PaymentScreenStyles";
 
 export default ({ navigation, route }: any) => {
@@ -29,39 +32,38 @@ export default ({ navigation, route }: any) => {
     setIsLoading(true);
 
     try {
-      const auth = getAuth();
-      const db = getFirestore();
       const user = auth.currentUser;
 
       if (!user) {
         Alert.alert("Error", "You must be logged in to book an appointment.");
+        setIsLoading(false);
         return;
       }
 
-      // 2. Prepare the Appointment Data object
+      // Prepare Appointment Data
       const appointmentData = {
-        userId: user.uid,              // Link to the patient
+        userId: user.uid,
         userEmail: user.email,
-        doctorId: doctor?.id,          // Link to the doctor
+        doctorId: doctor?.id,
         doctorName: doctor?.name,
         doctorSpecialty: doctor?.specialty,
         doctorImage: doctor?.image,
         date: date,
         time: time,
-        reason: reason,
+        reason: reason || "General Consultation",
         totalAmount: total,
-        status: 'upcoming',            // Initial status
-        createdAt: serverTimestamp(),  // Database server time
+        status: "upcoming",
+        createdAt: serverTimestamp(),
       };
 
-      // 3. Save to "appointments" collection
-      // We use addDoc() to let Firestore generate a unique Booking ID
+      // Save to Firestore
       await addDoc(collection(db, "appointments"), appointmentData);
 
+      // Navigate to success screen
       navigation.replace("BookingSuccess", {
-        doctor: doctor,
-        date: date,
-        time: time,
+        doctor,
+        date,
+        time,
       });
 
     } catch (error) {
@@ -105,7 +107,7 @@ export default ({ navigation, route }: any) => {
           </View>
         </View>
 
-        {/* Date Section */}
+        {/* Date & Reason Section */}
         <View style={styles.sectionHeader}>
           <Text style={styles.sectionTitle}>Date</Text>
           <TouchableOpacity onPress={() => navigation.goBack()}>
@@ -116,12 +118,9 @@ export default ({ navigation, route }: any) => {
           <View style={styles.iconCircle}>
             <Calendar size={20} color="#199A8E" />
           </View>
-          <Text style={styles.infoText}>
-            {date} | {time}
-          </Text>
+          <Text style={styles.infoText}>{date} | {time}</Text>
         </View>
 
-        {/* Reason Section */}
         <View style={styles.sectionHeader}>
           <Text style={styles.sectionTitle}>Reason</Text>
           <TouchableOpacity onPress={() => navigation.goBack()}>
@@ -139,9 +138,8 @@ export default ({ navigation, route }: any) => {
 
         <View style={styles.divider} />
 
-        {/* Payment Detail */}
+        {/* Payment Details */}
         <Text style={[styles.sectionTitle, { marginBottom: 16 }]}>Payment Detail</Text>
-        
         <View style={styles.paymentRow}>
           <Text style={styles.paymentLabel}>Consultation</Text>
           <Text style={styles.paymentValue}>Rs. {consultationFee}</Text>
@@ -154,7 +152,6 @@ export default ({ navigation, route }: any) => {
           <Text style={styles.paymentLabel}>Additional Discount</Text>
           <Text style={styles.paymentValue}>-</Text>
         </View>
-        
         <View style={styles.totalRow}>
           <Text style={styles.totalLabel}>Total</Text>
           <Text style={styles.totalValue}>Rs. {total}</Text>

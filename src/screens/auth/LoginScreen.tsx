@@ -10,7 +10,8 @@ import {
   Alert,
   ActivityIndicator,
 } from "react-native";
-import auth from "@react-native-firebase/auth";
+import { signInWithEmailAndPassword } from "firebase/auth";
+import { auth } from "../../config/firebase";
 import styles from "./styles/LoginScreenStyles"; 
 import { syncUser } from '../../services/api';
 
@@ -31,7 +32,11 @@ export default ({ navigation }: any) => {
 
     try {
       // 1. Firebase Login using react-native-firebase
-      const userCredential = await auth().signInWithEmailAndPassword(email.trim(), password);
+      const userCredential = await signInWithEmailAndPassword(
+  auth,
+  email.trim(),
+  password
+);
       
       // ---------------------------------------------------------
       // 🟡 NEW: Sync with MySQL Backend

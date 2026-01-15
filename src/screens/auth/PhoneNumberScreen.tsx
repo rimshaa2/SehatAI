@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useRef } from "react";
 import {
   SafeAreaView,
   ScrollView,
@@ -8,19 +8,21 @@ import {
   TextInput,
   Alert,
   ActivityIndicator,
-  StyleSheet, // Added StyleSheet
 } from "react-native";
+
 import CountryPicker, {
   Country,
   CountryCode,
 } from "react-native-country-picker-modal";
-import auth from "@react-native-firebase/auth";
+
 import { NativeStackScreenProps } from "@react-navigation/native-stack";
 import { AuthStackParamList } from "../../navigation/types";
 
-// If you have global styles, import them. 
-// For this fix, I will define the critical styles locally to ensure it works.
-import styles from "./styles/PhoneNumberStyles"; 
+import { FirebaseRecaptchaVerifierModal } from "expo-firebase-recaptcha";
+import { PhoneAuthProvider } from "firebase/auth";
+import { auth } from "../../config/firebase";
+
+import styles from "./styles/PhoneNumberStyles";
 
 type Props = NativeStackScreenProps<AuthStackParamList, "PhoneNumber">;
 
@@ -31,12 +33,14 @@ const PhoneNumberScreen: React.FC<Props> = ({ navigation }) => {
   const [showCountryPicker, setShowCountryPicker] = useState(false);
   const [loading, setLoading] = useState(false);
 
+  // ✅ Required for Expo phone auth
+  const recaptchaVerifier = useRef<FirebaseRecaptchaVerifierModal>(null);
+
   const onSelect = (selectedCountry: Country) => {
     setCountryCode(selectedCountry.cca2);
-    if (selectedCountry.callingCode && selectedCountry.callingCode.length > 0) {
+    if (selectedCountry.callingCode?.length) {
       setCallingCode(selectedCountry.callingCode[0]);
     }
-    // Flag updates automatically based on countryCode prop
     setShowCountryPicker(false);
   };
 
@@ -50,24 +54,39 @@ const PhoneNumberScreen: React.FC<Props> = ({ navigation }) => {
 
     try {
       const fullPhoneNumber = `+${callingCode}${phone}`;
-      const confirmation = await auth().signInWithPhoneNumber(fullPhoneNumber);
-      setLoading(false);
-      navigation.navigate("Otp", { confirmation });
+
+      const phoneProvider = new PhoneAuthProvider(auth);
+
+      const verificationId = await phoneProvider.verifyPhoneNumber(
+        fullPhoneNumber,
+        recaptchaVerifier.current!
+      );
+
+      navigation.navigate("Otp", { verificationId });
+
     } catch (err: any) {
-      setLoading(false);
-      console.log("Error sending OTP:", err);
-      if (err.code === 'auth/invalid-phone-number') {
-        Alert.alert('Error', 'The phone number is invalid.');
-      } else if (err.code === 'auth/quota-exceeded') {
-        Alert.alert('Error', 'SMS quota exceeded. Try again later.');
+      console.log("OTP Send Error:", err);
+
+      if (err.code === "auth/invalid-phone-number") {
+        Alert.alert("Error", "Invalid phone number.");
+      } else if (err.code === "auth/too-many-requests") {
+        Alert.alert("Error", "Too many requests. Try again later.");
       } else {
-        Alert.alert('Error', 'Something went wrong. Please try again.');
+        Alert.alert("Error", "Failed to send OTP.");
       }
+    } finally {
+      setLoading(false);
     }
   };
 
   return (
     <SafeAreaView style={styles.container}>
+      {/* 🔐 Invisible Recaptcha (MANDATORY) */}
+      <FirebaseRecaptchaVerifierModal
+        ref={recaptchaVerifier}
+        firebaseConfig={auth.app.options}
+      />
+
       <ScrollView style={styles.scroll}>
         <View style={styles.titleWrapper}>
           <Text style={styles.title}>Register</Text>
@@ -80,39 +99,31 @@ const PhoneNumberScreen: React.FC<Props> = ({ navigation }) => {
           <Text style={styles.label}>Phone Number</Text>
 
           <View style={styles.phoneInputContainer}>
-            {/* Country Picker Section */}
+            {/* Country Picker */}
             <View style={styles.countryPickerWrapper}>
               <CountryPicker
                 withFilter
                 withFlag
-                withCallingCode={false} // We display calling code manually next to it
                 withEmoji
                 countryCode={countryCode}
                 onSelect={onSelect}
                 visible={showCountryPicker}
                 onClose={() => setShowCountryPicker(false)}
-                containerButtonStyle={styles.pickerButton} // Fixes alignment
-                theme={{
-                  onBackgroundTextColor: 'black',
-                  fontSize: 24, // Ensures flag is large enough
-                }}
+                containerButtonStyle={styles.pickerButton}
               />
               <Text style={styles.countryCodeText}>{countryCode}</Text>
             </View>
 
-            {/* Vertical Divider */}
             <View style={styles.divider} />
 
-            {/* Calling Code */}
             <Text style={styles.callingCodeText}>+{callingCode}</Text>
 
-            {/* Phone Input */}
             <TextInput
-              placeholder="812-3123-3123"
+              placeholder="81231233123"
               value={phone}
               onChangeText={setPhone}
               keyboardType="phone-pad"
-              style={styles.phoneInputText} // Applied specific font size here
+              style={styles.phoneInputText}
               placeholderTextColor="#A1A8B0"
             />
           </View>
@@ -122,17 +133,17 @@ const PhoneNumberScreen: React.FC<Props> = ({ navigation }) => {
           disabled={loading}
           style={[
             styles.continueBtn,
-            { backgroundColor: phone.length > 0 ? "#199A8E" : "#F3F4F6" },
+            { backgroundColor: phone ? "#199A8E" : "#F3F4F6" },
           ]}
           onPress={sendOtp}
         >
           {loading ? (
-             <ActivityIndicator color="#FFFFFF" />
+            <ActivityIndicator color="#FFFFFF" />
           ) : (
             <Text
               style={[
                 styles.continueText,
-                { color: phone.length > 0 ? "#FFFFFF" : "#D4D4D8" },
+                { color: phone ? "#FFFFFF" : "#D4D4D8" },
               ]}
             >
               Continue

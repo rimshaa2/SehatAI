@@ -11,12 +11,14 @@ import {
   TouchableWithoutFeedback,
 } from "react-native";
 import { ChevronLeft } from "lucide-react-native";
-import { getAuth, updateProfile } from "@react-native-firebase/auth";
-import { getFirestore, doc, updateDoc } from "@react-native-firebase/firestore";
+
+import { auth, db } from "../../config/firebase";
+import { updateProfile } from "firebase/auth";
+import { doc, updateDoc } from "firebase/firestore";
+
 import styles from "./styles/EditProfileStyles";
 
 export default ({ navigation, route }: any) => {
-  // Get existing data passed from ProfileScreen
   const { userData } = route.params || {};
 
   const [fullName, setFullName] = useState(userData?.fullName || "");
@@ -25,7 +27,7 @@ export default ({ navigation, route }: any) => {
 
   const handleSave = async () => {
     Keyboard.dismiss();
-    
+
     if (fullName.trim().length < 2) {
       Alert.alert("Error", "Name must be at least 2 characters.");
       return;
@@ -34,29 +36,30 @@ export default ({ navigation, route }: any) => {
     setIsLoading(true);
 
     try {
-      const auth = getAuth();
-      const db = getFirestore();
       const user = auth.currentUser;
 
-      if (user) {
-        // 1. Update Firebase Auth Profile (DisplayName)
-        await updateProfile(user, {
-          displayName: fullName,
-        });
-
-        // 2. Update Firestore User Document
-        const userRef = doc(db, "users", user.uid);
-        await updateDoc(userRef, {
-          fullName: fullName,
-          phone: phone,
-        });
-
-        Alert.alert("Success", "Profile updated successfully!", [
-          { text: "OK", onPress: () => navigation.goBack() }
-        ]);
+      if (!user) {
+        Alert.alert("Error", "User not authenticated.");
+        return;
       }
+
+      // 1️⃣ Update Firebase Auth display name
+      await updateProfile(user, {
+        displayName: fullName,
+      });
+
+      // 2️⃣ Update Firestore user document
+      const userRef = doc(db, "users", user.uid);
+      await updateDoc(userRef, {
+        fullName,
+        phone,
+      });
+
+      Alert.alert("Success", "Profile updated successfully!", [
+        { text: "OK", onPress: () => navigation.goBack() },
+      ]);
     } catch (error) {
-      console.error("Update Error:", error);
+      console.error("Profile Update Error:", error);
       Alert.alert("Error", "Could not update profile. Please try again.");
     } finally {
       setIsLoading(false);
@@ -68,7 +71,7 @@ export default ({ navigation, route }: any) => {
       <SafeAreaView style={styles.container}>
         {/* Header */}
         <View style={styles.header}>
-          <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backButton}>
+          <TouchableOpacity onPress={() => navigation.goBack()}>
             <ChevronLeft color="#1C2A3A" size={24} />
           </TouchableOpacity>
           <Text style={styles.headerTitle}>Edit Profile</Text>
@@ -76,7 +79,7 @@ export default ({ navigation, route }: any) => {
 
         {/* Form */}
         <View style={styles.formContainer}>
-          {/* Name Field */}
+          {/* Full Name */}
           <View style={styles.inputGroup}>
             <Text style={styles.label}>Full Name</Text>
             <TextInput
@@ -87,17 +90,17 @@ export default ({ navigation, route }: any) => {
             />
           </View>
 
-          {/* Email Field (Read Only) */}
+          {/* Email (Read-only) */}
           <View style={styles.inputGroup}>
             <Text style={styles.label}>Email</Text>
             <TextInput
               style={[styles.input, styles.disabledInput]}
               value={userData?.email}
-              editable={false} 
+              editable={false}
             />
           </View>
 
-          {/* Phone Field */}
+          {/* Phone */}
           <View style={styles.inputGroup}>
             <Text style={styles.label}>Phone Number</Text>
             <TextInput
@@ -110,8 +113,8 @@ export default ({ navigation, route }: any) => {
           </View>
 
           {/* Save Button */}
-          <TouchableOpacity 
-            style={styles.saveButton} 
+          <TouchableOpacity
+            style={styles.saveButton}
             onPress={handleSave}
             disabled={isLoading}
           >

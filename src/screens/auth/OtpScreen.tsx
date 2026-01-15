@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState } from "react";
 import {
   SafeAreaView,
   Text,
@@ -6,58 +6,58 @@ import {
   TouchableOpacity,
   View,
   Alert,
-  ActivityIndicator
+  ActivityIndicator,
 } from "react-native";
+
 import styles from "./styles/OtpScreenStyles";
 import { NativeStackScreenProps } from "@react-navigation/native-stack";
 import { AuthStackParamList } from "../../navigation/types";
 
-// 1. Import Native Auth (only for types if needed, logic is handled via the route param)
-import auth from "@react-native-firebase/auth";
+import {
+  PhoneAuthProvider,
+  signInWithCredential,
+} from "firebase/auth";
+
+import { auth } from "../../config/firebase";
 
 type Props = NativeStackScreenProps<AuthStackParamList, "Otp">;
 
 const OtpScreen: React.FC<Props> = ({ navigation, route }) => {
   const [otp, setOtp] = useState("");
   const [loading, setLoading] = useState(false);
-  
-  // 2. Destructure the confirmation object passed from PhoneNumberScreen
-  const { confirmation } = route.params;
 
-  // Optional: Handle auto-verification (Android often verifies SMS automatically)
-  useEffect(() => {
-    const subscriber = auth().onAuthStateChanged(user => {
-        if (user) {
-            // If the OS auto-verified the code, user is already logged in
-            // navigation.replace("Home"); 
-            console.log("Auto-verified!");
-        }
-    });
-    return subscriber; // unsubscribe on unmount
-  }, []);
+  // ✅ verificationId received from PhoneNumber screen
+  const { verificationId } = route.params;
 
   const confirmOtp = async () => {
     if (otp.length !== 6) return;
 
     setLoading(true);
     try {
-      // 3. Use the native confirm method
-      // This automatically signs the user in if successful
-      await confirmation.confirm(otp);
-      
-      setLoading(false);
-      
+      // 1️⃣ Create Firebase credential
+      const credential = PhoneAuthProvider.credential(
+        verificationId,
+        otp
+      );
+
+      // 2️⃣ Sign in user
+      const userCredential = await signInWithCredential(auth, credential);
+
+      console.log("✅ Phone Auth Success:", userCredential.user.uid);
+
+      // 3️⃣ Navigate forward
       navigation.replace("Register");
 
     } catch (err: any) {
-      setLoading(false);
-      console.log("Error verifying OTP:", err);
-      
-      if (err.code === 'auth/invalid-verification-code') {
-         Alert.alert('Error', 'Invalid code. Please check your SMS.');
+      console.log("OTP Error:", err);
+
+      if (err.code === "auth/invalid-verification-code") {
+        Alert.alert("Error", "Invalid OTP. Please try again.");
       } else {
-         Alert.alert('Error', 'Verification failed.');
+        Alert.alert("Error", "Verification failed.");
       }
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -87,7 +87,7 @@ const OtpScreen: React.FC<Props> = ({ navigation, route }) => {
           disabled={otp.length !== 6 || loading}
         >
           {loading ? (
-             <ActivityIndicator color="#FFFFFF" />
+            <ActivityIndicator color="#FFFFFF" />
           ) : (
             <Text
               style={[

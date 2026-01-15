@@ -8,9 +8,6 @@ import {
   Image,
   TouchableOpacity,
 } from "react-native";
-import { getAuth } from "@react-native-firebase/auth";
-import { getFirestore, doc, getDoc, collection, query, where, getDocs } from "@react-native-firebase/firestore";
-import { useFocusEffect } from "@react-navigation/native"; 
 import { 
   Search, 
   Calendar, 
@@ -18,8 +15,14 @@ import {
   MessageCircle, 
   Home, 
   User, 
-  CalendarDays // This is the icon we need to activate
+  CalendarDays 
 } from "lucide-react-native";
+
+import { auth, db } from "../../config/firebase";
+import { doc, getDoc, collection, query, where, getDocs } from "firebase/firestore";
+
+import { onAuthStateChanged } from "firebase/auth";
+import { useFocusEffect } from "@react-navigation/native"; 
 
 import styles from "./HomeScreenStyles";
 
@@ -28,13 +31,9 @@ export default ({ navigation }: any) => {
   const [nextAppointment, setNextAppointment] = useState<any>(null);
   const [loadingAppt, setLoadingAppt] = useState(true);
 
-  const auth = getAuth();
-  const db = getFirestore();
-
-  // 1. Fetch User Name
+  // ✅ 1. Fetch User Name
   useEffect(() => {
-    const fetchUserData = async () => {
-      const user = auth.currentUser;
+    const unsubscribe = onAuthStateChanged(auth, async (user) => {
       if (user) {
         if (user.displayName) {
           setUserName(user.displayName.split(" ")[0]);
@@ -46,11 +45,12 @@ export default ({ navigation }: any) => {
           }
         }
       }
-    };
-    fetchUserData();
+    });
+
+    return () => unsubscribe(); // Cleanup listener
   }, []);
 
-  // 2. Fetch Upcoming Appointment
+  // ✅ 2. Fetch Upcoming Appointment
   useFocusEffect(
     useCallback(() => {
       const fetchAppointment = async () => {
@@ -64,10 +64,9 @@ export default ({ navigation }: any) => {
           );
 
           const snapshot = await getDocs(q);
-          
+
           if (!snapshot.empty) {
-            const appointments = snapshot.docs.map((doc: { id: any; data: () => any; }) => ({ id: doc.id, ...doc.data() }));
-            // Sort by newest first
+            const appointments = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
             appointments.sort((a: any, b: any) => b.createdAt - a.createdAt);
             setNextAppointment(appointments[0]);
           } else {
@@ -84,6 +83,7 @@ export default ({ navigation }: any) => {
     }, [])
   );
 
+  // ✅ Grid Item
   const GridItem = ({ title, subtitle, icon, color, onPress }: any) => (
     <TouchableOpacity 
       style={[styles.gridItem, { backgroundColor: color }]} 
@@ -99,10 +99,7 @@ export default ({ navigation }: any) => {
 
   return (
     <SafeAreaView style={styles.container}>
-      <ScrollView 
-        showsVerticalScrollIndicator={false}
-        contentContainerStyle={{ paddingBottom: 100 }} 
-      >
+      <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: 100 }}>
         {/* Header */}
         <View style={styles.header}>
           <View>
@@ -132,7 +129,7 @@ export default ({ navigation }: any) => {
           </TouchableOpacity>
         </View>
 
-        {/* Dynamic Appointment Card */}
+        {/* Appointment Card */}
         {nextAppointment && (
           <TouchableOpacity 
             activeOpacity={0.9}
@@ -180,33 +177,33 @@ export default ({ navigation }: any) => {
           />
           <GridItem 
             title="Medical Records" 
-            subtitle="view medical reports and history"
+            subtitle="View medical reports and history"
             icon={{ uri: 'https://cdn-icons-png.flaticon.com/512/3004/3004458.png' }}
             color="#EBFDF2" 
             onPress={() => navigation.navigate("MedicalRecords")}
           />
           <GridItem 
             title="Check Symptoms" 
-            subtitle="Get trusted medical advice instantly with virtual assistant."
+            subtitle="Get trusted medical advice instantly"
             icon={{ uri: 'https://cdn-icons-png.flaticon.com/512/2966/2966327.png' }}
             color="#F2E7FE"
             onPress={() => navigation.navigate("AiAssistant")} 
           />
           <GridItem 
-            title="Report an emergency" 
+            title="Report an Emergency" 
             subtitle="Take help in emergency situation"
             icon={{ uri: 'https://cdn-icons-png.flaticon.com/512/564/564619.png' }}
             color="#FFEEEE" 
           />
           <GridItem 
             title="Log Medicines" 
-            subtitle="get reminded to take medicines"
+            subtitle="Get reminded to take medicines"
             icon={{ uri: 'https://cdn-icons-png.flaticon.com/512/883/883360.png' }}
             color="#FFF5EB" 
           />
           <GridItem 
             title="Mental Wellness" 
-            subtitle="seek Mental health support"
+            subtitle="Seek mental health support"
             icon={{ uri: 'https://cdn-icons-png.flaticon.com/512/2913/2913520.png' }}
             color="#FEFCE4" 
           />
@@ -224,27 +221,20 @@ export default ({ navigation }: any) => {
              <Text style={{color:'white', fontWeight:'bold'}}>AI</Text>
           </View>
         </View>
-
       </ScrollView>
 
-      {/* Floating Bottom Navigation Bar */}
+      {/* Bottom Navigation */}
       <View style={styles.bottomNav}>
         <TouchableOpacity onPress={() => navigation.navigate("Home")}>
           <Home color="#1C2A3A" size={24} />
         </TouchableOpacity>
-        
         <TouchableOpacity onPress={() => navigation.navigate("AiAssistant")}>
           <MessageCircle color="#FFFFFF" size={24} />
         </TouchableOpacity>
-        
         <TouchableOpacity onPress={() => navigation.navigate("Profile")}>
           <User color="#FFFFFF" size={24} />
         </TouchableOpacity>
-        
-        {/* 👇 UPDATED: Navigate to DoctorList (All Doctors) */}
-        <TouchableOpacity 
-          onPress={() => navigation.navigate("DoctorList", { specialty: "All Doctors" })}
-        >
+        <TouchableOpacity onPress={() => navigation.navigate("DoctorList", { specialty: "All Doctors" })}>
           <CalendarDays color="#FFFFFF" size={24} />
         </TouchableOpacity>
       </View>

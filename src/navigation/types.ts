@@ -1,10 +1,10 @@
-import { FirebaseAuthTypes } from "@react-native-firebase/auth";
 export type AuthStackParamList = {
   Welcome: undefined;
   Login: undefined;
   PhoneNumber: undefined;
-  Otp: { 
-    confirmation: FirebaseAuthTypes.ConfirmationResult; 
+  Otp: {
+    verificationId: string;   // ✅ Firebase Web SDK compatible
+    phoneNumber?: string;     // optional but useful
   };
   Register: undefined;
   Home:undefined;

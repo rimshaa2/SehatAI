@@ -33,12 +33,7 @@
     "web": {
       "favicon": "./assets/favicon.png"
     },
-    "plugins": [
-      "expo-build-properties",
-      "@react-native-firebase/app",
-      "@react-native-firebase/auth"
-      
-    ],
+    "plugins": [],
     "extra": {
       "eas": {
         "projectId": "bde0e5b0-6f3c-41b5-9cca-a9cb1d97844b"
