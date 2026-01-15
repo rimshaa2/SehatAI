@@ -2,8 +2,8 @@ import axios from 'axios';
 
 // 🔴 REPLACE WITH YOUR IP ADDRESS FROM STEP 1
 // Do NOT use 'localhost'. Use your computer's IP.
-const API_URL = 'http://172.23.112.1:5000/api'; 
-const AI_URL = 'http://172.23.112.1:5000/api/ai';
+const API_URL = 'http://192.168.100.153:5000/api'; 
+const AI_URL = 'http://192.168.100.153:5000/api/ai';
 
 const api = axios.create({
   baseURL: API_URL,

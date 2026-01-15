@@ -10,7 +10,7 @@ import {
   Alert,
   ActivityIndicator,
 } from "react-native";
-import { getAuth, signInWithEmailAndPassword } from "@react-native-firebase/auth";
+import auth from "@react-native-firebase/auth";
 import styles from "./styles/LoginScreenStyles"; 
 import { syncUser } from '../../services/api';
 
@@ -20,7 +20,6 @@ export default ({ navigation }: any) => {
   const [isPasswordVisible, setIsPasswordVisible] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
 
-  const auth = getAuth();
 
   const handleLogin = async () => {
     if (!email || !password) {
@@ -31,8 +30,8 @@ export default ({ navigation }: any) => {
     setIsLoading(true);
 
     try {
-      // 1. Modular Firebase Login (Existing)
-      const userCredential = await signInWithEmailAndPassword(auth, email.trim(), password);
+      // 1. Firebase Login using react-native-firebase
+      const userCredential = await auth().signInWithEmailAndPassword(email.trim(), password);
       
       // ---------------------------------------------------------
       // 🟡 NEW: Sync with MySQL Backend
