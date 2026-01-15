@@ -14,7 +14,11 @@ import {
   TouchableWithoutFeedback,
 } from "react-native";
 import { ChevronLeft, Search, Star, ChevronDown, X } from "lucide-react-native";
-import { getFirestore, collection, query, where, getDocs } from "@react-native-firebase/firestore";
+
+// 🔴 REMOVED: Firestore imports
+// 🟢 ADDED: API Service Import
+import { getDoctors } from "../../services/api"; 
+
 import styles from "./styles/DoctorListStyles";
 
 export default ({ navigation, route }: any) => {
@@ -37,31 +41,33 @@ export default ({ navigation, route }: any) => {
       console.log("🔍 Fetching doctors for:", categoryTitle);
       setLoading(true);
       try {
-        const db = getFirestore();
-        const doctorsRef = collection(db, "doctors");
-        
-        let q;
+        // 🟢 NEW: Call your Node.js Backend (MySQL/Redis)
+        // If category is "All Doctors", we pass null so the API fetches everyone
+        const apiData = await getDoctors(categoryTitle === "All Doctors" ? null : categoryTitle);
 
-        // 👇 UPDATED LOGIC: Check if we need to filter or get all
-        if (categoryTitle === "All Doctors") {
-          // Fetch EVERYTHING (No 'where' clause)
-          q = query(doctorsRef);
-        } else {
-          // Fetch SPECIFIC category
-          q = query(doctorsRef, where("category", "==", categoryTitle));
-        }
-        
-        const querySnapshot = await getDocs(q);
-        const list: any[] = [];
-        querySnapshot.forEach((doc: { id: any; data: () => any; }) => {
-          list.push({ id: doc.id, ...doc.data() });
-        });
+        console.log(`✅ API Returned ${apiData.length} doctors`);
 
-        console.log(`✅ Found ${list.length} doctors`);
-        setAllDoctors(list);
+        // 🟢 MAPPING: Convert MySQL Data Format -> UI Format
+        const formattedList = apiData.map((doc: any) => ({
+          id: doc.id.toString(), // Ensure ID is string for FlatList
+          name: doc.user?.fullName || "Unknown Doctor", // Join from User Table
+          specialty: doc.specialization,
+          image: doc.user?.profilePicture || null, // Join from User Table
+          
+          // Price Formatting
+          price: `Rs. ${doc.consultationFee}`, 
+          priceValue: doc.consultationFee, // Keep raw number for sorting logic
+          
+          // Mocks for fields not yet in DB (We can add these columns later)
+          rating: 4.8, 
+          gender: 'Male', 
+          isAvailable: true 
+        }));
+
+        setAllDoctors(formattedList);
       } catch (error) {
-        console.error("Error:", error);
-        Alert.alert("Error", "Could not fetch doctors.");
+        console.error("API Error:", error);
+        Alert.alert("Connection Error", "Could not connect to Sehat AI Server.");
       } finally {
         setLoading(false);
       }
@@ -69,7 +75,7 @@ export default ({ navigation, route }: any) => {
     fetchDoctors();
   }, [categoryTitle]);
 
-  // 2. Client-Side Filtering (Search, Gender, Price, Availability)
+  // 2. Client-Side Filtering (Kept largely the same for UI responsiveness)
   const filteredDoctors = useMemo(() => {
     let result = [...allDoctors];
 

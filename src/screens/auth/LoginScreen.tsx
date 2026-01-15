@@ -11,7 +11,8 @@ import {
   ActivityIndicator,
 } from "react-native";
 import { getAuth, signInWithEmailAndPassword } from "@react-native-firebase/auth";
-import styles from "./styles/LoginScreenStyles"; // Importing styles
+import styles from "./styles/LoginScreenStyles"; 
+import { syncUser } from '../../services/api';
 
 export default ({ navigation }: any) => {
   const [email, setEmail] = useState("");
@@ -30,24 +31,46 @@ export default ({ navigation }: any) => {
     setIsLoading(true);
 
     try {
-      // Modular Firebase Login
-      await signInWithEmailAndPassword(auth, email.trim(), password);
+      // 1. Modular Firebase Login (Existing)
+      const userCredential = await signInWithEmailAndPassword(auth, email.trim(), password);
       
-      // Navigate to Home on success
-      // Using reset prevents the user from going back to the login screen
+      // ---------------------------------------------------------
+      // 🟡 NEW: Sync with MySQL Backend
+      // ---------------------------------------------------------
+      console.log("Firebase Auth Success. Now syncing to MySQL...");
+      
+      // A. Get the security token from Firebase
+      const idToken = await userCredential.user.getIdToken();
+
+      // B. Send token to your Node.js backend
+      // This ensures the user exists in your 'Users' table in MySQL
+      const dbResponse = await syncUser(idToken);
+      
+      console.log("✅ MySQL Sync Success:", dbResponse);
+      // ---------------------------------------------------------
+
+      // 2. Navigate to Home on success
       navigation.reset({
         index: 0,
         routes: [{ name: 'Home' }],
       });
 
     } catch (error: any) {
-      console.error(error);
+      console.error("Login Error:", error);
+      
       let msg = "Login failed. Please try again.";
+      
+      // Firebase Errors
       if (error.code === 'auth/invalid-email') msg = "That email address is invalid.";
       if (error.code === 'auth/user-not-found') msg = "No user found with this email.";
       if (error.code === 'auth/wrong-password') msg = "Incorrect password.";
       if (error.code === 'auth/invalid-credential') msg = "Invalid credentials.";
       
+      // 🟡 Axios/Network Errors (If backend is down)
+      if (error.message && error.message.includes('Network Error')) {
+        msg = "Cannot connect to Sehat AI Server. Please check your internet or try again later.";
+      }
+
       Alert.alert("Login Failed", msg);
     } finally {
       setIsLoading(false);
